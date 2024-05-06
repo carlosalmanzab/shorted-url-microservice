@@ -1,0 +1,44 @@
+# cassandra/docker-compose.yml
+# docker-compose up -d
+# connect to cqlsh with: docker exec -it cassandra-shorturl-cqlsh cqlsh
+# the config if or only node
+
+
+services:
+  cassandra:
+    container_name: cassandra_container
+    image: bitnami/cassandra:latest
+    ports:
+      - 9042:9042
+      - 7000:7000
+    environment:
+      - CASSANDRA_CLUSTER_NAME=cassandra-cluster
+      - CASSANDRA_PASSWORD_SEEDER=yes
+      - CASSANDRA_CQLSH_ENABLED=yes
+      - CASSANDRA_CQLSH_PORT=9042
+      - CASSANDRA_DC=datacenter1
+      
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "[ $$(nodetool statusgossip) = running ]"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - microservices-kafka-cassandra-network  
+
+  init-cassandra:
+    image: bitnami/cassandra:latest
+    depends_on:
+      - cassandra
+    volumes:
+      - ./init-cassandra.sh:/docker-entrypoint-initdb.d/init-cassandra.sh
+    entrypoint: ["/docker-entrypoint-initdb.d/init-cassandra.sh"]
+    restart: no
+    networks:
+      - microservices-kafka-cassandra-network
+
+networks:
+  microservices-kafka-cassandra-network:
+    driver: bridge
+    name: microservices-kafka-cassandra-network

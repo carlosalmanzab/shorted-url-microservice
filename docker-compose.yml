@@ -1,0 +1,65 @@
+
+services:
+  shorted_service:
+    container_name: shorted_service
+    image: shorted_service:1.0.0
+    build: ./shorted_microservice/
+    ports:
+      - 8080:8080
+    environment:
+      - PORT=8080
+      - CASSANDRA_KEYSPACE_NAME=spring_shorturl
+      - CASSANDRA_USERNAME=cassandra
+      - CASSANDRA_PASSWORD=cassandra
+      - CASSANDRA_PORT=9042
+      - CASSANDRA_CONTACT_POINT=cassandra_container
+      - CASSANDRA_LOCAL_DATACENTER=datacenter1
+      - KAFKA_BOOTSTRAP_SERVERS=kafka_container:29092
+      - KAFKA_TOPIC=badwords
+      - REDIRECT_SERVICE_HOST=localhost
+      - REDIRECT_SERVICE_PORT=8081
+    depends_on:
+      - redirect_service
+    networks:
+      - microservices-kafka-cassandra-network
+
+  redirect_service:
+    container_name: redirect_service
+    image: redirect_service:1.0.0
+    build: ./redirect_microservice/
+    ports:
+      - 8081:8081
+    environment:
+      - PORT=8081
+      - CASSANDRA_KEYSPACE_NAME=spring_shorturl
+      - CASSANDRA_USERNAME=cassandra
+      - CASSANDRA_PASSWORD=cassandra
+      - CASSANDRA_PORT=9042
+      - CASSANDRA_CONTACT_POINT=cassandra_container
+      - CASSANDRA_LOCAL_DATACENTER=datacenter1
+      - API_CLEANER_URL=http://cleaner-service:8083
+    depends_on:
+      - cleaner-service
+    networks:
+      - microservices-kafka-cassandra-network
+
+  cleaner-service:
+    container_name: cleaner-service
+    image: cleaner_service:1.0.0
+    build: ./cleaner_microservice/
+    ports:
+      - 8083:8083
+    environment:
+      - PORT=8083
+      - CASSANDRA_KEYSPACE_NAME=spring_shorturl
+      - CASSANDRA_USERNAME=cassandra
+      - CASSANDRA_PASSWORD=cassandra
+      - CASSANDRA_PORT=9042
+      - CASSANDRA_CONTACT_POINT=cassandra_container
+      - CASSANDRA_LOCAL_DATACENTER=datacenter1
+    networks:
+      - microservices-kafka-cassandra-network
+
+networks:
+  microservices-kafka-cassandra-network:
+    external: true
